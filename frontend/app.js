@@ -83,12 +83,12 @@ function updateUI(data) {
     
     if (gs.state === 'online') {
       gsBadge.className = 'status-badge online';
-      gsBadge.textContent = 'ONLINE';
+      gsBadge.textContent = 'APROBADO';
       gsDurationLabel.textContent = 'Tiempo Encendido (Uptime)';
       gsDurationBox.className = 'status-duration-box online';
     } else {
       gsBadge.className = 'status-badge offline';
-      gsBadge.textContent = 'OFFLINE';
+      gsBadge.textContent = 'DENEGADO';
       gsDurationLabel.textContent = 'Tiempo Apagado (Downtime)';
       gsDurationBox.className = 'status-duration-box offline';
     }
@@ -106,7 +106,7 @@ function updateUI(data) {
       
       const isRunning = inst.state === 'running';
       const statusBadgeClass = isRunning ? 'status-badge online' : 'status-badge offline';
-      const statusBadgeText = isRunning ? 'Activo' : 'Detenido';
+      const statusBadgeText = isRunning ? 'APROBADO' : 'DENEGADO';
       
       // Intentar obtener clase de estilo según tipo de juego
       const appLower = inst.app.toLowerCase();
