@@ -1,0 +1,17 @@
+{
+  "states": {
+    "pc": {
+      "state": "online",
+      "lastChange": 1787908437424
+    },
+    "gameServer": {
+      "state": "online",
+      "lastChange": 1787908437446
+    },
+    "raspberry": {
+      "state": "online",
+      "lastChange": 1787908437377
+    },
+    "instances": {}
+  }
+}

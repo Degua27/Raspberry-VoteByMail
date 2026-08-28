@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VBM - Monitor</title>
+  <!-- Google Fonts: Silkscreen (for headings) & JetBrains Mono (monospace data details) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons for clean vector icon design -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Custom Styling (Retro Cyberpunk Menu Theme) -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="header-main">
+      <div class="logo-area">
+        <div class="logo-icon">
+          <i data-lucide="activity"></i>
+        </div>
+        <div>
+          <h1>VBM</h1>
+        </div>
+      </div>
+      <div class="sync-status">
+        <span class="pulse-dot" id="ws-dot"></span>
+        <span id="ws-status" class="font-mono">CONECTANDO...</span>
+        <span class="divider">|</span>
+        <span class="last-sync font-mono">ACT: <span id="last-update">--:--:--</span></span>
+      </div>
+    </div>
+  </header>
+
+  <main class="dashboard-content">
+    <div class="booth-container">
+      <!-- SECCIÓN 1: ESTADO DEL SERVIDOR FÍSICO -->
+      <section class="section-devices">
+        <div class="devices-grid single-card-layout">
+          <!-- Tarjeta del Servidor -->
+          <div class="card device-card" id="card-gameserver">
+            <div class="card-header">
+              <div class="device-info">
+                <span class="device-icon gs-icon"><i data-lucide="hard-drive"></i></span>
+                <div>
+                  <h3 id="gs-name" class="font-pixel">SERVIDOR GLOBAL</h3>
+                  <span class="ip-address font-mono" id="gs-ip">--</span>
+                </div>
+              </div>
+              <!-- Indicador de estado -->
+              <span class="status-badge" id="gs-badge">CARGANDO...</span>
+            </div>
+            
+            <div class="card-body">
+              <div class="status-duration-box" id="gs-duration-box">
+                <div class="duration-title" id="gs-duration-label">Cargando estado...</div>
+                <div class="duration-time font-mono" id="gs-duration">0d 0h 0m 0s</div>
+              </div>
+              
+              <div class="divider-thin"></div>
+              
+              <div class="extra-info">
+                <div class="info-row">
+                  <span>Último cambio de estado:</span>
+                  <span id="gs-last-change" class="font-mono">--/--/-- --:--</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECCIÓN 2: INSTANCIAS DE JUEGOS (AMP) -->
+      <section class="section-instances">
+        <div class="section-header">
+          <h2 class="section-title"><i data-lucide="gamepad-2"></i> Instancias</h2>
+          <span class="instances-count font-mono" id="instances-count">0 activas</span>
+        </div>
+
+        <!-- Grid de Instancias Dinámicas -->
+        <div class="instances-grid" id="instances-grid">
+          <!-- Mensaje por defecto -->
+          <div class="no-data-msg">
+            <i data-lucide="info"></i>
+            <p class="font-pixel">No se encontraron instancias activas o el servidor está apagado.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="app-footer">
+    <p>Game Server Monitor Dashboard &copy; 2026. Conectado a través de la API de AMP.</p>
+  </footer>
+
+  <!-- Script principal -->
+  <script src="app.js"></script>
+</body>
+</html>
