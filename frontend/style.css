@@ -1,50 +1,41 @@
 /* ==========================================================================
-   ESTILO RETRO CYBERPUNK - PAPERS, PLEASE MENU STYLE
+   ESTILO RETRO DOCUMENTAL - PAPERS, PLEASE PAPERS & STAMPS STYLE
    ========================================================================== */
 :root {
   --font-pixel: 'Silkscreen', 'Press Start 2P', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
-  /* Paleta Dystopian / Retro Cyberpunk Menu */
-  --bg-booth: #121513;        /* Fondo oscuro de cabina/menú */
-  --bg-header: #1b201c;       /* Encabezado sólido */
-  --bg-card: #1c211e;         /* Paneles de menú gris carbón */
-  --bg-card-hover: #222925;   /* Resaltado del panel */
+  /* Paleta Dystopian / Retro Cabinet (La mesa de Papers, Please) */
+  --bg-cabinet: #151816;      /* El fondo verde militar oscuro de la mesa */
+  --bg-header: #1d221f;       /* Borde superior de la cabina */
+  --bg-paper: #d5cdb7;        /* Papel de documento / Beige antiguo */
+  --bg-paper-dark: #b8af97;   /* Sombra del papel para contrastes */
   
-  --text-primary: #d1dcd4;    /* Texto gris claro de pantalla fósforo */
-  --text-secondary: #8fa395;  /* Texto de información */
-  --text-muted: #57655c;      /* Texto de bajo contraste */
+  --text-paper: #1c1f1d;      /* Tinta oscura sobre papel */
+  --text-muted: #5e6661;      /* Tinta gastada */
   
-  --color-border: #353e38;    /* Bordes de interfaz toscos */
-  --color-border-hover: #505d54;
+  --color-border: #2d332f;    /* Bordes de interfaz de la mesa */
+  --color-doc-border: #1d211e;/* Bordes gruesos del papel */
 
-  /* Estados de terminal (LED / Sólidos) */
-  --state-online-bg: #1b3d22;
-  --state-online-border: #357a41;
-  --state-online-text: #8ce899;
+  /* Colores de Sellos de Goma (Stamps) */
+  --stamp-approved: #28632c;  /* Verde tinta de APROBADO */
+  --stamp-denied: #9c2727;    /* Rojo tinta de DENEGADO */
+  --stamp-warning: #94691e;   /* Mostaza tinta */
 
-  --state-offline-bg: #421b1b;
-  --state-offline-border: #8c3535;
-  --state-offline-text: #f79696;
-
-  --state-warning-bg: #4c3b1c;
-  --state-warning-border: #8c6e35;
-  --state-warning-text: #f2ce7d;
-
-  --transition-click: 0.05s ease;
+  --transition-tactile: 0.05s ease;
 }
 
-/* Reset y configuraciones generales */
+/* Reset y configuraciones básicas */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  border-radius: 0 !important; /* Estilo tosco y cuadrado, sin bordes redondeados */
+  border-radius: 0 !important; /* Estilo rígido y angular de documentos impresos */
 }
 
 body {
-  background-color: var(--bg-booth);
-  color: var(--text-primary);
+  background-color: var(--bg-cabinet);
+  color: #e2e8f0;
   font-family: var(--font-mono);
   min-height: 100vh;
   display: flex;
@@ -65,8 +56,9 @@ body {
 
 .divider-thin {
   height: 2px;
-  background: var(--color-border);
+  background: var(--color-doc-border);
   margin: 12px 0;
+  opacity: 0.35;
 }
 
 /* ==========================================================================
@@ -95,14 +87,14 @@ body {
 }
 
 .logo-icon {
-  background: #121513;
+  background: #151816;
   border: 2px solid var(--color-border);
   width: 44px;
   height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-primary);
+  color: var(--text-secondary);
 }
 
 .logo-icon i {
@@ -113,25 +105,25 @@ body {
 .logo-area h1 {
   font-family: var(--font-pixel);
   font-size: 1.4rem;
-  color: var(--text-primary);
+  color: #c9d6cc;
   text-shadow: 1px 1px 0px #000;
 }
 
-/* Estado de conexión (Ventanilla) */
+/* Estado de conexión (Sello digital del header) */
 .sync-status {
   display: flex;
   align-items: center;
   background: #0d0f0e;
   border: 2px solid var(--color-border);
   padding: 8px 16px;
-  color: var(--text-secondary);
+  color: #8fa394;
   font-size: 0.8rem;
 }
 
 .pulse-dot {
   width: 8px;
   height: 8px;
-  background-color: var(--state-warning-border);
+  background-color: var(--stamp-warning);
   margin-right: 10px;
   border: 1px solid #000;
   display: inline-block;
@@ -179,7 +171,7 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: var(--text-secondary);
+  color: #a4b3a8;
   text-shadow: 1px 1px 0px #000;
 }
 
@@ -190,7 +182,7 @@ body {
 }
 
 /* ==========================================================================
-   PANELES DE CONTROL (TARJETAS)
+   TARJETAS / PASAPORTES (DOCUMENTOS DE PAPEL BEIGE)
    ========================================================================== */
 .devices-grid {
   display: flex;
@@ -204,16 +196,18 @@ body {
 }
 
 .card {
-  background-color: var(--bg-card);
-  border: 2px solid var(--color-border);
+  background-color: var(--bg-paper);
+  color: var(--text-paper);
+  border: 4px solid var(--color-doc-border);
   padding: 20px;
-  transition: background-color var(--transition-click), border-color var(--transition-click);
   position: relative;
+  box-shadow: 6px 6px 0px rgba(0, 0, 0, 0.5);
+  transition: transform var(--transition-tactile);
 }
 
 .card:hover {
-  background-color: var(--bg-card-hover);
-  border-color: var(--color-border-hover);
+  transform: translateY(-2px);
+  box-shadow: 8px 8px 0px rgba(0, 0, 0, 0.6);
 }
 
 .device-card {
@@ -236,24 +230,24 @@ body {
 .device-info h3 {
   font-size: 0.95rem;
   font-weight: bold;
-  color: var(--text-primary);
+  color: var(--text-paper);
   text-transform: uppercase;
 }
 
 .ip-address {
   font-size: 0.8rem;
-  color: var(--text-secondary);
+  color: var(--text-muted);
 }
 
 .device-icon {
-  background: #121513;
-  border: 2px solid var(--color-border);
+  background: var(--bg-paper-dark);
+  border: 2px solid var(--color-doc-border);
   width: 40px;
   height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-primary);
+  color: var(--text-paper);
 }
 
 .device-icon i {
@@ -262,52 +256,55 @@ body {
 }
 
 /* ==========================================================================
-   BADGES / INDICADORES RECTANGULARES (LED STYLE)
+   SELLOS DE ESTADO INCLINADOS (RUBBER STAMPS)
    ========================================================================== */
 .status-badge {
   font-family: var(--font-pixel);
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   font-weight: bold;
   text-transform: uppercase;
-  border: 2px solid;
-  padding: 4px 10px;
+  border: 4px double;
+  padding: 6px 14px;
   background: transparent;
   display: inline-block;
+  letter-spacing: 1px;
+  transform: rotate(-3deg); /* Inclinación de sello manual */
+  pointer-events: none;
   text-align: center;
+  animation: stamp-animation 0.12s ease-out;
 }
 
 .status-badge.online {
-  background-color: var(--state-online-bg);
-  border-color: var(--state-online-border);
-  color: var(--state-online-text);
+  color: var(--stamp-approved);
+  border-color: var(--stamp-approved);
+  background: rgba(40, 99, 44, 0.02);
 }
 
 .status-badge.offline {
-  background-color: var(--state-offline-bg);
-  border-color: var(--state-offline-border);
-  color: var(--state-offline-text);
+  color: var(--stamp-denied);
+  border-color: var(--stamp-denied);
+  background: rgba(156, 39, 39, 0.02);
 }
 
-.status-badge.warning {
-  background-color: var(--state-warning-bg);
-  border-color: var(--state-warning-border);
-  color: var(--state-warning-text);
+@keyframes stamp-animation {
+  0% { transform: scale(1.3) rotate(-15deg); opacity: 0; }
+  100% { transform: scale(1) rotate(-3deg); opacity: 1; }
 }
 
-/* Contenedores de información (Duración de estado) */
+/* Cajas de duración de estado (Detalle en el documento) */
 .status-duration-box {
-  background: #0d0f0e;
-  border: 2px solid var(--color-border);
+  background: var(--bg-paper-dark);
+  border: 2px solid var(--color-doc-border);
   padding: 12px;
   margin-top: 14px;
 }
 
 .status-duration-box.online {
-  border-left: 4px solid var(--state-online-border);
+  border-left: 6px solid var(--stamp-approved);
 }
 
 .status-duration-box.offline {
-  border-left: 4px solid var(--state-offline-border);
+  border-left: 6px solid var(--stamp-denied);
 }
 
 .duration-title {
@@ -321,12 +318,13 @@ body {
 .duration-time {
   font-size: 1.4rem;
   font-weight: bold;
-  color: var(--text-primary);
+  color: var(--text-paper);
 }
 
 .extra-info {
   font-size: 0.72rem;
-  color: var(--text-secondary);
+  color: var(--text-muted);
+  font-weight: bold;
 }
 
 .info-row {
@@ -342,7 +340,7 @@ body {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
-  border-bottom: 2px solid var(--color-border);
+  border-bottom: 3px solid var(--color-border);
   padding-bottom: 8px;
 }
 
@@ -354,7 +352,7 @@ body {
   font-size: 0.75rem;
   background: #0d0f0e;
   border: 2px solid var(--color-border);
-  color: var(--text-secondary);
+  color: #8fa394;
   padding: 4px 8px;
   font-weight: bold;
 }
@@ -369,21 +367,33 @@ body {
   min-height: 230px;
 }
 
+/* Alternar inclinación en las tarjetas del grid para simular papeles esparcidos */
+.instances-grid .instance-card:nth-child(even) {
+  transform: rotate(0.5deg);
+}
+
+.instances-grid .instance-card:nth-child(odd) {
+  transform: rotate(-0.5deg);
+}
+
+.instances-grid .instance-card:hover {
+  transform: translateY(-2px) rotate(0deg);
+}
+
 .instance-app-badge {
   font-size: 0.65rem;
   padding: 2px 6px;
   font-weight: bold;
-  border: 1px solid var(--color-border);
-  background: #121513;
+  border: 1px solid var(--color-doc-border);
+  background: var(--bg-paper-dark);
   text-transform: uppercase;
-  color: var(--text-secondary);
 }
 
-/* Indicadores de tipo de aplicación */
-.app-minecraft { border-left: 4px solid #357a41; color: #4ade80; }
-.app-ark { border-left: 4px solid #1a5b82; color: #38bdf8; }
-.app-valheim { border-left: 4px solid #82221a; color: #f87171; }
-.app-satisfactory { border-left: 4px solid #826e1a; color: #fbbf24; }
+/* Mapeo de juegos */
+.app-minecraft { border-left: 4px solid var(--stamp-approved); color: var(--stamp-approved); }
+.app-ark { border-left: 4px solid #1a5b82; color: #1a5b82; }
+.app-valheim { border-left: 4px solid #82221a; color: #82221a; }
+.app-satisfactory { border-left: 4px solid #826e1a; color: #826e1a; }
 
 .instance-status-info {
   margin-top: 12px;
@@ -410,15 +420,15 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: #0d0f0e;
+  background: var(--bg-paper-dark);
   padding: 4px 8px;
-  border: 2px solid var(--color-border);
+  border: 2px solid var(--color-doc-border);
 }
 
 .instance-players i {
   width: 14px;
   height: 14px;
-  color: var(--text-secondary);
+  color: var(--text-paper);
 }
 
 /* ==========================================================================
@@ -440,28 +450,28 @@ body {
   display: flex;
   justify-content: space-between;
   font-size: 0.7rem;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font-weight: bold;
 }
 
 .progress-bar-container {
   height: 12px;
-  background-color: #0d0f0e;
-  border: 2px solid var(--color-border);
+  background-color: var(--bg-paper-dark);
+  border: 2px solid var(--color-doc-border);
   overflow: hidden;
   position: relative;
 }
 
 .progress-bar {
   height: 100%;
-  background-color: var(--text-secondary); /* color del LED */
+  background-color: var(--text-paper); /* Color del bloque lleno en tinta */
   /* Genera un patrón de rejilla/segmentado repitiendo un gradiente transparente y papel */
   background-image: repeating-linear-gradient(
     90deg,
     transparent,
     transparent 4px,
-    #0d0f0e 4px,
-    #0d0f0e 6px
+    var(--bg-paper) 4px,
+    var(--bg-paper) 6px
   );
   transition: width 0.3s steps(10);
 }
@@ -471,7 +481,7 @@ body {
   grid-column: 1 / -1;
   text-align: center;
   padding: 40px;
-  background: #0d0f0e;
+  background: #111512;
   border: 2px dashed var(--color-border);
   color: var(--text-muted);
   display: flex;
@@ -483,7 +493,7 @@ body {
 .no-data-msg i {
   width: 32px;
   height: 32px;
-  color: var(--text-muted);
+  color: #5e6661;
 }
 
 /* ==========================================================================
