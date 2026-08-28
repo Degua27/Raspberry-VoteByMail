@@ -1,0 +1,17 @@
+# Dependencias
+node_modules/
+
+# Entorno y credenciales
+.env
+.env.local
+
+# Configuración y base de datos local
+config.json
+data/
+
+# Logs del sistema
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.system_generated/
+*.log
