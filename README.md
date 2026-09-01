@@ -9,36 +9,7 @@ Este repositorio contiene un dashboard web con estética **Papers, Please Docume
 
 ---
 
-## ⚡ Guía de Instalación Rápida por Terminal (SSH)
 
-Si estás conectado a la terminal de tu Raspberry PI (o vía SSH), puedes copiar y ejecutar este bloque de comandos para tener todo configurado y corriendo:
-
-```bash
-# 1. Asegúrate de tener Git, Node.js y NPM instalados en la Raspberry PI
-sudo apt update
-sudo apt install -y git nodejs npm
-
-# 2. Clona el repositorio y entra en la carpeta del proyecto
-git clone https://github.com/Degua27/Raspberry-VoteByMail.git
-cd Raspberry-VoteByMail
-
-# 3. Instala las dependencias del proyecto
-npm install
-
-# 4. Copia los archivos de configuración de ejemplo
-cp config.example.json config.json
-cp .env.example .env
-
-# 5. Configura tu IP, puerto y credenciales de AMP en los archivos
-# (Usa 'Ctrl+O' para guardar y 'Ctrl+X' para salir de nano)
-nano config.json
-nano .env
-
-# 6. Inicia el servidor
-npm start
-```
-
----
 
 ## 🚀 Características Principales
 
@@ -66,6 +37,36 @@ npm start
 ├── config.json         # Configuración de IPs y puertos (Creado al desplegar)
 ├── .env                # Credenciales del panel AMP (Creado al desplegar)
 └── package.json        # Dependencias y scripts de ejecución
+```
+
+---
+## ⚡ Guía de Instalación Rápida por Terminal (SSH)
+
+Si estás conectado a la terminal de tu Raspberry PI (o vía SSH), puedes copiar y ejecutar este bloque de comandos para tener todo configurado y corriendo:
+
+```bash
+# 1. Asegúrate de tener Git, Node.js y NPM instalados en la Raspberry PI
+sudo apt update
+sudo apt install -y git nodejs npm
+
+# 2. Clona el repositorio y entra en la carpeta del proyecto
+git clone https://github.com/Degua27/Raspberry-VoteByMail.git
+cd Raspberry-VoteByMail
+
+# 3. Instala las dependencias del proyecto
+npm install
+
+# 4. Copia los archivos de configuración de ejemplo
+cp config.example.json config.json
+cp .env.example .env
+
+# 5. Configura tu IP, puerto y credenciales de AMP en los archivos
+# (Usa 'Ctrl+O' para guardar y 'Ctrl+X' para salir de nano)
+nano config.json
+nano .env
+
+# 6. Inicia el servidor
+npm start
 ```
 
 ---
