@@ -115,6 +115,8 @@ function updateUI(data) {
       else if (appLower.includes('ark')) appBadgeClass += ' app-ark';
       else if (appLower.includes('valheim')) appBadgeClass += ' app-valheim';
       else if (appLower.includes('satisfactory')) appBadgeClass += ' app-satisfactory';
+      else if (appLower.includes('zomboid')) appBadgeClass += ' app-zomboid';
+      else if (appLower.includes('palworld')) appBadgeClass += ' app-palworld';
 
       card.innerHTML = `
         <div class="card-header">

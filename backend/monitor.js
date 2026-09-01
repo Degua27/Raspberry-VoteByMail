@@ -228,7 +228,7 @@ class Monitor {
         if (rawInstances && Array.isArray(rawInstances)) {
           ampInstances = rawInstances.map(inst => {
             const name = inst.InstanceName || inst.name || inst.InstanceId || inst.InstanceID || 'Desconocido';
-            const app = inst.ApplicationName || inst.module || inst.Module || inst.AppType || 'Instancia';
+            const app = inst.ModuleDisplayName || inst.ApplicationName || inst.module || inst.Module || inst.AppType || 'Juego';
             const friendlyName = inst.FriendlyName || inst.friendlyName || name;
 
             // Omitir el controlador maestro ADS (solo mostrar instancias de juegos)
@@ -239,20 +239,16 @@ class Monitor {
               return null;
             }
 
-            // Detección estricta de estado Running en AMP
+            // Detección del estado real del servidor de juegos en AMP:
+            // inst.Running = el daemon/contenedor de AMP está activo
+            // inst.AppState = estado de la aplicación del juego (0 = Detenido, 20/30 = En Ejecución)
             let isRunning = false;
-            if (typeof inst.Running === 'boolean') {
+            if (inst.AppState !== undefined) {
+              isRunning = (inst.AppState === 20 || inst.AppState === 30 || String(inst.AppState).toLowerCase() === 'running');
+            } else if (typeof inst.Running === 'boolean') {
               isRunning = inst.Running;
             } else if (typeof inst.running === 'boolean') {
               isRunning = inst.running;
-            } else if (typeof inst.IsRunning === 'boolean') {
-              isRunning = inst.IsRunning;
-            } else if (typeof inst.isRunning === 'boolean') {
-              isRunning = inst.isRunning;
-            } else if (typeof inst.Running === 'string') {
-              isRunning = (inst.Running.toLowerCase() === 'yes' || inst.Running.toLowerCase() === 'running');
-            } else if (inst.AppState !== undefined) {
-              isRunning = (inst.AppState === 20 || inst.AppState === 30 || String(inst.AppState).toLowerCase() === 'running');
             }
 
             const state = isRunning ? 'running' : 'stopped';

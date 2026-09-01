@@ -156,23 +156,25 @@ async function testAMP() {
 
     console.log(`\n📋 Resumen de Servidores de Juegos Encontrados (${instances.length}):`);
     instances.forEach((inst, index) => {
-      // Detección precisa de ejecución
+      // Detección precisa del estado del juego
       let isRunning = false;
-      if (typeof inst.Running === 'boolean') isRunning = inst.Running;
-      else if (typeof inst.running === 'boolean') isRunning = inst.running;
-      else if (typeof inst.IsRunning === 'boolean') isRunning = inst.IsRunning;
-      else if (typeof inst.isRunning === 'boolean') isRunning = inst.isRunning;
-      else if (typeof inst.Running === 'string') isRunning = (inst.Running.toLowerCase() === 'yes' || inst.Running.toLowerCase() === 'running');
-      else if (inst.AppState !== undefined) isRunning = (inst.AppState === 20 || inst.AppState === 30 || String(inst.AppState).toLowerCase() === 'running');
+      if (inst.AppState !== undefined) {
+        isRunning = (inst.AppState === 20 || inst.AppState === 30 || String(inst.AppState).toLowerCase() === 'running');
+      } else if (typeof inst.Running === 'boolean') {
+        isRunning = inst.Running;
+      } else if (typeof inst.running === 'boolean') {
+        isRunning = inst.running;
+      }
 
+      const appName = inst.ModuleDisplayName || inst.ApplicationName || inst.module || inst.Module || 'Juego';
       const activeUsers = typeof inst.ActiveUsers === 'object' ? (inst.ActiveUsers.Value ?? 0) : (inst.ActiveUsers ?? 0);
       const maxUsers = typeof inst.MaxUsers === 'object' ? (inst.MaxUsers.Value ?? 0) : (inst.MaxUsers ?? 0);
 
       console.log(`\n[${index + 1}] Nombre: ${inst.InstanceName || inst.name || 'Desconocido'}`);
       console.log(`    Friendly Name: ${inst.FriendlyName || 'N/A'}`);
-      console.log(`    App / Módulo: ${inst.ApplicationName || inst.module || inst.Module || 'N/A'}`);
-      console.log(`    Estado Detectado: ${isRunning ? '🟢 EN EJECUCIÓN' : '🔴 DETENIDO'}`);
-      console.log(`    Valores brutos de AMP: Running=${inst.Running}, AppState=${inst.AppState}, State=${inst.State}, IsRunning=${inst.IsRunning}`);
+      console.log(`    Juego: ${appName}`);
+      console.log(`    Estado Detectado: ${isRunning ? '🟢 EN EJECUCIÓN (APROBADO)' : '🔴 DETENIDO (DENEGADO)'}`);
+      console.log(`    Detalle técnico: AppState=${inst.AppState} (0=Stop, 20/30=Run), DaemonRunning=${inst.Running}`);
       console.log(`    Jugadores: ${activeUsers}/${maxUsers}`);
       if (inst.Uptime) {
         console.log(`    Uptime: ${Math.floor(inst.Uptime / 3600)}h ${Math.floor((inst.Uptime % 3600) / 60)}m`);
