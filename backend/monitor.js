@@ -17,28 +17,41 @@ function ping(ip) {
 // Extraer lista de instancias de diferentes formatos de respuesta JSON de AMP
 function extractInstances(data) {
   if (!data) return [];
-  if (Array.isArray(data)) return data;
 
-  const candidate = (data.Result !== undefined) ? data.Result :
-                    ((data.result !== undefined) ? data.result :
-                    (data.Instances || data.instances || data.data || data.Data || data));
+  const raw = (data.Result !== undefined) ? data.Result :
+              ((data.result !== undefined) ? data.result :
+              (data.Instances || data.instances || data.data || data.Data || data));
 
-  if (Array.isArray(candidate)) return candidate;
+  const list = Array.isArray(raw) ? raw : (typeof raw === 'object' ? Object.values(raw) : []);
+  const flattened = [];
 
-  if (candidate && typeof candidate === 'object') {
-    if (Array.isArray(candidate.AvailableInstances)) return candidate.AvailableInstances;
-    if (Array.isArray(candidate.Instances)) return candidate.Instances;
-    if (Array.isArray(candidate.instances)) return candidate.instances;
+  for (const item of list) {
+    if (!item || typeof item !== 'object') continue;
 
-    // Si es una respuesta de Core/GetStatus (instancia individual)
-    if (candidate.State !== undefined || candidate.Metrics !== undefined || candidate.Running !== undefined) {
-      return [candidate];
+    // En AMP ADS v2.8+, devuelve grupos de objetivos (Targets como "Local Instances")
+    // donde Instances o AvailableInstances es un Diccionario { "guid": { ... } } o un Array [ { ... } ]
+    const subInstances = item.Instances || item.instances || item.AvailableInstances || item.availableInstances;
+
+    if (subInstances && typeof subInstances === 'object') {
+      const subList = Array.isArray(subInstances) ? subInstances : Object.values(subInstances);
+      for (const inst of subList) {
+        if (inst && typeof inst === 'object') {
+          flattened.push(inst);
+        }
+      }
+    } else if (item.InstanceName || item.InstanceId || item.InstanceID || item.name || item.ApplicationName || item.module || item.Module) {
+      flattened.push(item);
+    } else if (item.State !== undefined || item.Metrics !== undefined || item.Running !== undefined) {
+      flattened.push(item);
     }
-
-    return Object.values(candidate);
   }
 
-  return [];
+  // Si encontramos instancias hijas reales dentro de los targets, devolverlas
+  if (flattened.length > 0) {
+    return flattened;
+  }
+
+  return Array.isArray(raw) ? raw : [];
 }
 
 // Cliente API de AMP
@@ -79,7 +92,7 @@ class AMPClient {
       const sessionId = data.SessionID || data.sessionID || data.sessionId ||
         (data.result && (data.result.SessionID || data.result.sessionID || data.result.sessionId)) ||
         (data.Result && (data.Result.SessionID || data.Result.sessionID || data.Result.sessionId));
-      
+
       if (!sessionId) {
         throw new Error(`No se recibió SessionID en la respuesta: ${JSON.stringify(data)}`);
       }

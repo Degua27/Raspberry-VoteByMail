@@ -69,7 +69,7 @@ async function testAMP() {
 
     // 2. Probar Obtener Instancias / Estado
     console.log('\n--- 2. Probando endpoints de AMP ---');
-    
+
     const endpointsToTry = [
       { name: 'ADSModule/GetInstances (Módulo ADS v2.8+)', url: `${ampUrl}/API/ADSModule/GetInstances` },
       { name: 'ADS/GetInstances (Controlador ADS)', url: `${ampUrl}/API/ADS/GetInstances` },
@@ -121,31 +121,33 @@ async function testAMP() {
     }
 
     console.log(`\n--- 3. Resultado final con ${successfulEndpoint} ---`);
-    const candidate = instancesData.Result !== undefined ? instancesData.Result :
-                      (instancesData.result !== undefined ? instancesData.result : instancesData);
+    const raw = instancesData.Result !== undefined ? instancesData.Result :
+      (instancesData.result !== undefined ? instancesData.result : instancesData);
 
+    const list = Array.isArray(raw) ? raw : (typeof raw === 'object' ? Object.values(raw) : []);
     let instances = [];
-    if (Array.isArray(candidate)) {
-      instances = candidate;
-    } else if (candidate && typeof candidate === 'object') {
-      if (Array.isArray(candidate.AvailableInstances)) instances = candidate.AvailableInstances;
-      else if (Array.isArray(candidate.Instances)) instances = candidate.Instances;
-      else if (candidate.State !== undefined || candidate.Metrics !== undefined) {
-        // Es una instancia individual devuelta por Core/GetStatus
-        instances = [{
-          InstanceName: "Instancia Principal",
-          FriendlyName: "Instancia AMP",
-          ApplicationName: "Game Server",
-          Running: candidate.State === 20 || candidate.Running === true,
-          ActiveUsers: candidate.Metrics && candidate.Metrics['Active Users'] ? candidate.Metrics['Active Users'].Value : 0,
-          MaxUsers: candidate.Metrics && candidate.Metrics['Max Users'] ? candidate.Metrics['Max Users'].Value : 0,
-          PercentCPU: candidate.Metrics && candidate.Metrics['Percent CPU'] ? candidate.Metrics['Percent CPU'].Value : 0,
-          PercentMemory: candidate.Metrics && candidate.Metrics['Percent RAM'] ? candidate.Metrics['Percent RAM'].Value : 0,
-          Uptime: candidate.Uptime
-        }];
-      } else {
-        instances = Object.values(candidate);
+
+    for (const item of list) {
+      if (!item || typeof item !== 'object') continue;
+
+      const subInstances = item.Instances || item.instances || item.AvailableInstances || item.availableInstances;
+
+      if (subInstances && typeof subInstances === 'object') {
+        const subList = Array.isArray(subInstances) ? subInstances : Object.values(subInstances);
+        for (const inst of subList) {
+          if (inst && typeof inst === 'object') {
+            instances.push(inst);
+          }
+        }
+      } else if (item.InstanceName || item.InstanceId || item.InstanceID || item.name || item.ApplicationName || item.module || item.Module) {
+        instances.push(item);
+      } else if (item.State !== undefined || item.Metrics !== undefined || item.Running !== undefined) {
+        instances.push(item);
       }
+    }
+
+    if (instances.length === 0 && Array.isArray(raw)) {
+      instances = raw;
     }
 
     console.log(`\n📋 Resumen de Instancias Encontradas (${instances.length}):`);
