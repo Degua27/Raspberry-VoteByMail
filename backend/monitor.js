@@ -7,7 +7,7 @@ const db = require('./database');
 function ping(ip) {
   return new Promise((resolve) => {
     const isWindows = process.platform === 'win32';
-    const cmd = isWindows ? `ping -n 1 -w 1000 ${ip}` : `ping -c 1 -W 1 ${ip}`;
+    const cmd = isWindows ? `ping -n 1 -w 500 ${ip}` : `ping -c 1 -W 1 ${ip}`;
     exec(cmd, (err, stdout, stderr) => {
       resolve(!err);
     });
@@ -44,8 +44,6 @@ function extractInstances(data) {
   for (const item of list) {
     if (!item || typeof item !== 'object') continue;
 
-    // En AMP ADS v2.8+, devuelve grupos de objetivos (Targets como "Local Instances")
-    // donde Instances o AvailableInstances es un Diccionario { "guid": { ... } } o un Array [ { ... } ]
     const subInstances = item.Instances || item.instances || item.AvailableInstances || item.availableInstances;
 
     if (subInstances && typeof subInstances === 'object') {
@@ -62,7 +60,6 @@ function extractInstances(data) {
     }
   }
 
-  // Si encontramos instancias hijas reales dentro de los targets, devolverlas
   if (flattened.length > 0) {
     return flattened;
   }
@@ -77,6 +74,7 @@ class AMPClient {
     this.username = username;
     this.password = password;
     this.sessionId = null;
+    this.workingEndpoint = `${this.url}/API/ADSModule/GetInstances`;
   }
 
   async login() {
@@ -130,15 +128,16 @@ class AMPClient {
     }
 
     const endpoints = [
+      this.workingEndpoint,
       `${this.url}/API/ADSModule/GetInstances`,
       `${this.url}/API/ADS/GetInstances`,
-      `${this.url}/API/Core/GetInstances`,
-      `${this.url}/API/Core/GetStatus`
+      `${this.url}/API/Core/GetInstances`
     ];
 
-    for (const endpoint of endpoints) {
+    const uniqueEndpoints = [...new Set(endpoints)];
+
+    for (const endpoint of uniqueEndpoints) {
       try {
-        console.log(`📡 Consultando endpoint AMP: ${endpoint}`);
         const response = await fetch(endpoint, {
           method: 'POST',
           headers: {
@@ -155,21 +154,17 @@ class AMPClient {
           if (data && data.error && (data.error.includes('Session') || data.error.includes('auth') || data.error.includes('Auth'))) {
             console.log('⚠️ Sesión de AMP expirada. Reintentando login...');
             this.sessionId = null;
-            return this.getInstances(); // Reintentar login y llamada
+            return this.getInstances();
           }
 
           if (data && !data.error && !data.Title) {
             const list = extractInstances(data);
-            console.log(`✅ Endpoint ${endpoint} devolvió ${list.length} instancias.`);
+            this.workingEndpoint = endpoint;
             return list;
-          } else if (data && data.Title) {
-            console.warn(`⚠️ Endpoint ${endpoint} devolvió: ${data.Title} - ${data.Message || ''}`);
           }
-        } else {
-          console.warn(`⚠️ Endpoint ${endpoint} respondió con HTTP ${response.status}`);
         }
       } catch (error) {
-        console.warn(`⚠️ Endpoint ${endpoint} falló o no está disponible:`, error.message);
+        // Fallback silencioso al siguiente endpoint
       }
     }
     return null;
@@ -188,8 +183,8 @@ class Monitor {
   }
 
   start() {
-    const intervalTime = this.config.pollInterval || 4000;
-    console.log(`🚀 Iniciando ciclo de monitoreo cada ${intervalTime / 1000}s...`);
+    const intervalTime = this.config.pollInterval || 2000;
+    console.log(`🚀 Iniciando ciclo de monitoreo ultra rápido cada ${intervalTime / 1000}s...`);
 
     // Ejecutar monitoreo de inmediato y luego establecer el intervalo
     this.poll();
@@ -206,27 +201,22 @@ class Monitor {
 
   async poll() {
     const now = Date.now();
-
-    // 1. Monitorear Servidor de Juegos (Ping)
-    let gsOnline = false;
-    if (this.config.server && this.config.server.ip) {
-      gsOnline = await ping(this.config.server.ip);
-      db.updateState('gameServer', gsOnline ? 'online' : 'offline');
-    }
-
-    // 2. Monitorear Instancias AMP (si el servidor está online y AMP habilitado)
-    let ampInstances = [];
     const ampEnabled = this.config.amp && this.config.amp.enabled !== false;
 
-    if (!ampEnabled) {
-      console.log('ℹ️ AMP está deshabilitado en config.json (amp.enabled === false)');
-    } else if (!this.ampClient) {
-      console.warn('⚠️ AMP está habilitado pero no se pudo inicializar ampClient. Comprueba .env (AMP_PASSWORD) y config.json (url, username).');
-    } else {
-      if (gsOnline) {
-        const rawInstances = await this.ampClient.getInstances();
-        if (rawInstances && Array.isArray(rawInstances)) {
-          ampInstances = rawInstances.map(inst => {
+    // Ejecución en paralelo de Ping y consulta a AMP para latencia mínima
+    const [pingOnline, rawInstances] = await Promise.all([
+      (this.config.server && this.config.server.ip) ? ping(this.config.server.ip) : Promise.resolve(true),
+      (ampEnabled && this.ampClient) ? this.ampClient.getInstances() : Promise.resolve(null)
+    ]);
+
+    // Si AMP responde, el servidor está 100% online
+    const gsOnline = (rawInstances && rawInstances.length > 0) ? true : pingOnline;
+    db.updateState('gameServer', gsOnline ? 'online' : 'offline');
+
+    let ampInstances = [];
+
+    if (ampEnabled && this.ampClient && gsOnline && rawInstances && Array.isArray(rawInstances)) {
+      ampInstances = rawInstances.map(inst => {
             const name = inst.InstanceName || inst.name || inst.InstanceId || inst.InstanceID || 'Desconocido';
             const app = inst.ModuleDisplayName || inst.ApplicationName || inst.module || inst.Module || inst.AppType || 'Juego';
             const friendlyName = inst.FriendlyName || inst.friendlyName || name;
