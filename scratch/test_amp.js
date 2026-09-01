@@ -146,17 +146,30 @@ async function testAMP() {
       }
     }
 
-    if (instances.length === 0 && Array.isArray(raw)) {
-      instances = raw;
-    }
+    // Filtrar controlador ADS
+    instances = instances.filter(inst => {
+      const app = (inst.ApplicationName || inst.module || inst.Module || inst.AppType || '').toUpperCase();
+      const name = (inst.InstanceName || inst.name || '').toUpperCase();
+      const friendly = (inst.FriendlyName || inst.friendlyName || '').toUpperCase();
+      return !(app === 'ADS' || name.startsWith('ADS') || friendly.startsWith('ADS'));
+    });
 
-    console.log(`\n📋 Resumen de Instancias Encontradas (${instances.length}):`);
+    console.log(`\n📋 Resumen de Servidores de Juegos Encontrados (${instances.length}):`);
     instances.forEach((inst, index) => {
+      let isRunning = false;
+      if (typeof inst.Running === 'boolean') isRunning = inst.Running;
+      else if (typeof inst.running === 'boolean') isRunning = inst.running;
+      else if (inst.AppState !== undefined) isRunning = (inst.AppState === 20 || inst.AppState === 'Running');
+      else if (inst.State !== undefined) isRunning = (inst.State === 20 || inst.State === 'Running');
+
+      const activeUsers = typeof inst.ActiveUsers === 'object' ? (inst.ActiveUsers.Value ?? 0) : (inst.ActiveUsers ?? 0);
+      const maxUsers = typeof inst.MaxUsers === 'object' ? (inst.MaxUsers.Value ?? 0) : (inst.MaxUsers ?? 0);
+
       console.log(`\n[${index + 1}] Nombre: ${inst.InstanceName || inst.name || 'Desconocido'}`);
       console.log(`    Friendly Name: ${inst.FriendlyName || 'N/A'}`);
       console.log(`    App: ${inst.ApplicationName || inst.module || 'N/A'}`);
-      console.log(`    Estado: ${inst.Running ? '🟢 EN EJECUCIÓN' : '🔴 DETENIDO'}`);
-      console.log(`    Jugadores: ${inst.ActiveUsers !== undefined ? inst.ActiveUsers : '?'}/${inst.MaxUsers !== undefined ? inst.MaxUsers : '?'}`);
+      console.log(`    Estado: ${isRunning ? '🟢 EN EJECUCIÓN' : '🔴 DETENIDO'}`);
+      console.log(`    Jugadores: ${activeUsers}/${maxUsers}`);
       if (inst.Uptime) {
         console.log(`    Uptime: ${Math.floor(inst.Uptime / 3600)}h ${Math.floor((inst.Uptime % 3600) / 60)}m`);
       }

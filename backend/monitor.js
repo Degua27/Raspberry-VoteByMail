@@ -14,6 +14,22 @@ function ping(ip) {
   });
 }
 
+// Función para extraer valores numéricos de métricas de AMP (que pueden venir como objetos { Value: X })
+function parseMetricValue(val) {
+  if (val === undefined || val === null) return 0;
+  if (typeof val === 'number') return val;
+  if (typeof val === 'string') {
+    const parsed = parseFloat(val);
+    return isNaN(parsed) ? 0 : parsed;
+  }
+  if (typeof val === 'object') {
+    if (val.Value !== undefined) return parseMetricValue(val.Value);
+    if (val.RawValue !== undefined) return parseMetricValue(val.RawValue);
+    if (val.Current !== undefined) return parseMetricValue(val.Current);
+  }
+  return 0;
+}
+
 // Extraer lista de instancias de diferentes formatos de respuesta JSON de AMP
 function extractInstances(data) {
   if (!data) return [];
@@ -210,10 +226,31 @@ class Monitor {
       if (gsOnline) {
         const rawInstances = await this.ampClient.getInstances();
         if (rawInstances && Array.isArray(rawInstances)) {
-          console.log(`📊 Procesando ${rawInstances.length} instancias de AMP.`);
           ampInstances = rawInstances.map(inst => {
             const name = inst.InstanceName || inst.name || inst.InstanceId || inst.InstanceID || 'Desconocido';
-            const isRunning = inst.Running === true || inst.running === true || inst.State === 20 || inst.AppState === 20;
+            const app = inst.ApplicationName || inst.module || inst.Module || inst.AppType || 'Instancia';
+            const friendlyName = inst.FriendlyName || inst.friendlyName || name;
+
+            // Omitir el controlador maestro ADS (solo mostrar instancias de juegos)
+            const appUpper = app.toUpperCase();
+            const nameUpper = name.toUpperCase();
+            const friendlyUpper = friendlyName.toUpperCase();
+            if (appUpper === 'ADS' || nameUpper.startsWith('ADS') || friendlyUpper.startsWith('ADS')) {
+              return null;
+            }
+
+            // Detección estricta de estado Running en AMP
+            let isRunning = false;
+            if (typeof inst.Running === 'boolean') {
+              isRunning = inst.Running;
+            } else if (typeof inst.running === 'boolean') {
+              isRunning = inst.running;
+            } else if (inst.AppState !== undefined) {
+              isRunning = (inst.AppState === 20 || inst.AppState === 'Running');
+            } else if (inst.State !== undefined) {
+              isRunning = (inst.State === 20 || inst.State === 'Running');
+            }
+
             const state = isRunning ? 'running' : 'stopped';
 
             // Actualizar estado en DB
@@ -222,26 +259,15 @@ class Monitor {
             const dbState = db.getState(name, true);
             const timeSinceChange = dbState ? (now - dbState.lastChange) : 0;
 
-            const cpuValue = (inst.Metrics && inst.Metrics['Percent CPU'])
-              ? (inst.Metrics['Percent CPU'].Value !== undefined ? inst.Metrics['Percent CPU'].Value : inst.Metrics['Percent CPU'])
-              : (inst.PercentCPU || 0);
-
-            const ramValue = (inst.Metrics && inst.Metrics['Percent RAM'])
-              ? (inst.Metrics['Percent RAM'].Value !== undefined ? inst.Metrics['Percent RAM'].Value : inst.Metrics['Percent RAM'])
-              : (inst.PercentMemory || 0);
-
-            const activePlayers = inst.ActiveUsers !== undefined
-              ? inst.ActiveUsers
-              : ((inst.Metrics && inst.Metrics['Active Users']) ? (inst.Metrics['Active Users'].Value ?? inst.Metrics['Active Users']) : 0);
-
-            const maxPlayers = inst.MaxUsers !== undefined
-              ? inst.MaxUsers
-              : ((inst.Metrics && inst.Metrics['Max Users']) ? (inst.Metrics['Max Users'].Value ?? inst.Metrics['Max Users']) : 0);
+            const cpuValue = parseMetricValue(inst.Metrics && inst.Metrics['Percent CPU'] !== undefined ? inst.Metrics['Percent CPU'] : inst.PercentCPU);
+            const ramValue = parseMetricValue(inst.Metrics && inst.Metrics['Percent RAM'] !== undefined ? inst.Metrics['Percent RAM'] : inst.PercentMemory);
+            const activePlayers = parseMetricValue(inst.ActiveUsers !== undefined ? inst.ActiveUsers : (inst.Metrics && inst.Metrics['Active Users']));
+            const maxPlayers = parseMetricValue(inst.MaxUsers !== undefined ? inst.MaxUsers : (inst.Metrics && inst.Metrics['Max Users']));
 
             return {
               name: name,
-              friendlyName: inst.FriendlyName || inst.friendlyName || name,
-              app: inst.ApplicationName || inst.module || inst.Module || inst.AppType || 'Instancia',
+              friendlyName: friendlyName,
+              app: app,
               state: state,
               lastChange: dbState ? dbState.lastChange : now,
               duration: timeSinceChange, // cuánto lleva encendido o apagado
@@ -250,7 +276,9 @@ class Monitor {
               cpu: Math.round(cpuValue) || 0,
               ram: Math.round(ramValue) || 0
             };
-          });
+          }).filter(Boolean);
+
+          console.log(`📊 Procesadas ${ampInstances.length} instancias de juegos.`);
         } else {
           console.warn('⚠️ El servidor responde a ping pero la API de AMP no devolvió instancias (rawInstances:', rawInstances, ')');
         }
