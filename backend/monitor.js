@@ -35,8 +35,8 @@ function extractInstances(data) {
   if (!data) return [];
 
   const raw = (data.Result !== undefined) ? data.Result :
-              ((data.result !== undefined) ? data.result :
-              (data.Instances || data.instances || data.data || data.Data || data));
+    ((data.result !== undefined) ? data.result :
+      (data.Instances || data.instances || data.data || data.Data || data));
 
   const list = Array.isArray(raw) ? raw : (typeof raw === 'object' ? Object.values(raw) : []);
   const flattened = [];
@@ -245,10 +245,14 @@ class Monitor {
               isRunning = inst.Running;
             } else if (typeof inst.running === 'boolean') {
               isRunning = inst.running;
+            } else if (typeof inst.IsRunning === 'boolean') {
+              isRunning = inst.IsRunning;
+            } else if (typeof inst.isRunning === 'boolean') {
+              isRunning = inst.isRunning;
+            } else if (typeof inst.Running === 'string') {
+              isRunning = (inst.Running.toLowerCase() === 'yes' || inst.Running.toLowerCase() === 'running');
             } else if (inst.AppState !== undefined) {
-              isRunning = (inst.AppState === 20 || inst.AppState === 'Running');
-            } else if (inst.State !== undefined) {
-              isRunning = (inst.State === 20 || inst.State === 'Running');
+              isRunning = (inst.AppState === 20 || inst.AppState === 30 || String(inst.AppState).toLowerCase() === 'running');
             }
 
             const state = isRunning ? 'running' : 'stopped';

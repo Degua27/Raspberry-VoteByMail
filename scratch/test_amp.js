@@ -156,24 +156,33 @@ async function testAMP() {
 
     console.log(`\n📋 Resumen de Servidores de Juegos Encontrados (${instances.length}):`);
     instances.forEach((inst, index) => {
+      // Detección precisa de ejecución
       let isRunning = false;
       if (typeof inst.Running === 'boolean') isRunning = inst.Running;
       else if (typeof inst.running === 'boolean') isRunning = inst.running;
-      else if (inst.AppState !== undefined) isRunning = (inst.AppState === 20 || inst.AppState === 'Running');
-      else if (inst.State !== undefined) isRunning = (inst.State === 20 || inst.State === 'Running');
+      else if (typeof inst.IsRunning === 'boolean') isRunning = inst.IsRunning;
+      else if (typeof inst.isRunning === 'boolean') isRunning = inst.isRunning;
+      else if (typeof inst.Running === 'string') isRunning = (inst.Running.toLowerCase() === 'yes' || inst.Running.toLowerCase() === 'running');
+      else if (inst.AppState !== undefined) isRunning = (inst.AppState === 20 || inst.AppState === 30 || String(inst.AppState).toLowerCase() === 'running');
 
       const activeUsers = typeof inst.ActiveUsers === 'object' ? (inst.ActiveUsers.Value ?? 0) : (inst.ActiveUsers ?? 0);
       const maxUsers = typeof inst.MaxUsers === 'object' ? (inst.MaxUsers.Value ?? 0) : (inst.MaxUsers ?? 0);
 
       console.log(`\n[${index + 1}] Nombre: ${inst.InstanceName || inst.name || 'Desconocido'}`);
       console.log(`    Friendly Name: ${inst.FriendlyName || 'N/A'}`);
-      console.log(`    App: ${inst.ApplicationName || inst.module || 'N/A'}`);
-      console.log(`    Estado: ${isRunning ? '🟢 EN EJECUCIÓN' : '🔴 DETENIDO'}`);
+      console.log(`    App / Módulo: ${inst.ApplicationName || inst.module || inst.Module || 'N/A'}`);
+      console.log(`    Estado Detectado: ${isRunning ? '🟢 EN EJECUCIÓN' : '🔴 DETENIDO'}`);
+      console.log(`    Valores brutos de AMP: Running=${inst.Running}, AppState=${inst.AppState}, State=${inst.State}, IsRunning=${inst.IsRunning}`);
       console.log(`    Jugadores: ${activeUsers}/${maxUsers}`);
       if (inst.Uptime) {
         console.log(`    Uptime: ${Math.floor(inst.Uptime / 3600)}h ${Math.floor((inst.Uptime % 3600) / 60)}m`);
       }
     });
+
+    if (instances.length > 0) {
+      console.log('\n--- 4. Muestra del JSON de la primera instancia ---');
+      console.log(JSON.stringify(instances[0], null, 2));
+    }
 
   } catch (error) {
     console.error('❌ Error crítico durante el diagnóstico:', error.message);
