@@ -67,12 +67,15 @@ async function testAMP() {
 
     console.log(`✅ Login Exitoso! SessionID: ${sessionId}`);
 
-    // 2. Probar Obtener Instancias (GetInstances)
-    console.log('\n--- 2. Intentando obtener instancias desde ADS ---');
+    // 2. Probar Obtener Instancias / Estado
+    console.log('\n--- 2. Probando endpoints de AMP ---');
     
     const endpointsToTry = [
-      { name: 'ADS/GetInstances', url: `${ampUrl}/API/ADS/GetInstances` },
-      { name: 'Core/GetInstances', url: `${ampUrl}/API/Core/GetInstances` }
+      { name: 'ADSModule/GetInstances (Módulo ADS v2.8+)', url: `${ampUrl}/API/ADSModule/GetInstances` },
+      { name: 'ADS/GetInstances (Controlador ADS)', url: `${ampUrl}/API/ADS/GetInstances` },
+      { name: 'Core/GetInstances (Instancias Core)', url: `${ampUrl}/API/Core/GetInstances` },
+      { name: 'Core/GetStatus (Estado de Instancia Individual)', url: `${ampUrl}/API/Core/GetStatus` },
+      { name: 'Core/GetDashboardData (Datos de Dashboard)', url: `${ampUrl}/API/Core/GetDashboardData` }
     ];
 
     let instancesData = null;
@@ -80,7 +83,7 @@ async function testAMP() {
 
     for (const ep of endpointsToTry) {
       try {
-        console.log(`Probando endpoint: ${ep.name}...`);
+        console.log(`\nProbando endpoint: ${ep.name}...`);
         const response = await fetch(ep.url, {
           method: 'POST',
           headers: {
@@ -94,10 +97,11 @@ async function testAMP() {
 
         if (response.ok) {
           const data = await response.json();
-          if (data && !data.error) {
+          if (data && !data.error && !data.Title) {
             instancesData = data;
             successfulEndpoint = ep.name;
             console.log(`✅ Éxito con el endpoint: ${ep.name}`);
+            console.log('Respuesta:', JSON.stringify(data, null, 2));
             break;
           } else {
             console.log(`⚠️ El endpoint ${ep.name} devolvió un error:`, JSON.stringify(data));
@@ -111,17 +115,38 @@ async function testAMP() {
     }
 
     if (!instancesData) {
-      console.error('❌ Error: No se pudo obtener la lista de instancias con ninguno de los endpoints.');
+      console.error('\n❌ No se pudo obtener información con ninguno de los endpoints.');
+      console.log('💡 TIP: Si tienes varias instancias, asegúrate de que la URL en config.json apunta al puerto del controlador ADS (ej. 8080) y no al puerto de una instancia de juego específica.');
       return;
     }
 
-    console.log('\n--- 3. Resultado de Instancias ---');
-    console.log(JSON.stringify(instancesData, null, 2));
+    console.log(`\n--- 3. Resultado final con ${successfulEndpoint} ---`);
+    const candidate = instancesData.Result !== undefined ? instancesData.Result :
+                      (instancesData.result !== undefined ? instancesData.result : instancesData);
 
-    // Intentar analizar y mostrar un resumen amigable
-    const instances = Array.isArray(instancesData) 
-      ? instancesData 
-      : (instancesData.result || instancesData.instances || instancesData.Instances || []);
+    let instances = [];
+    if (Array.isArray(candidate)) {
+      instances = candidate;
+    } else if (candidate && typeof candidate === 'object') {
+      if (Array.isArray(candidate.AvailableInstances)) instances = candidate.AvailableInstances;
+      else if (Array.isArray(candidate.Instances)) instances = candidate.Instances;
+      else if (candidate.State !== undefined || candidate.Metrics !== undefined) {
+        // Es una instancia individual devuelta por Core/GetStatus
+        instances = [{
+          InstanceName: "Instancia Principal",
+          FriendlyName: "Instancia AMP",
+          ApplicationName: "Game Server",
+          Running: candidate.State === 20 || candidate.Running === true,
+          ActiveUsers: candidate.Metrics && candidate.Metrics['Active Users'] ? candidate.Metrics['Active Users'].Value : 0,
+          MaxUsers: candidate.Metrics && candidate.Metrics['Max Users'] ? candidate.Metrics['Max Users'].Value : 0,
+          PercentCPU: candidate.Metrics && candidate.Metrics['Percent CPU'] ? candidate.Metrics['Percent CPU'].Value : 0,
+          PercentMemory: candidate.Metrics && candidate.Metrics['Percent RAM'] ? candidate.Metrics['Percent RAM'].Value : 0,
+          Uptime: candidate.Uptime
+        }];
+      } else {
+        instances = Object.values(candidate);
+      }
+    }
 
     console.log(`\n📋 Resumen de Instancias Encontradas (${instances.length}):`);
     instances.forEach((inst, index) => {

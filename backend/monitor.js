@@ -21,7 +21,7 @@ function extractInstances(data) {
 
   const candidate = (data.Result !== undefined) ? data.Result :
                     ((data.result !== undefined) ? data.result :
-                    (data.Instances || data.instances || data.data || data.Data));
+                    (data.Instances || data.instances || data.data || data.Data || data));
 
   if (Array.isArray(candidate)) return candidate;
 
@@ -29,6 +29,12 @@ function extractInstances(data) {
     if (Array.isArray(candidate.AvailableInstances)) return candidate.AvailableInstances;
     if (Array.isArray(candidate.Instances)) return candidate.Instances;
     if (Array.isArray(candidate.instances)) return candidate.instances;
+
+    // Si es una respuesta de Core/GetStatus (instancia individual)
+    if (candidate.State !== undefined || candidate.Metrics !== undefined || candidate.Running !== undefined) {
+      return [candidate];
+    }
+
     return Object.values(candidate);
   }
 
@@ -95,8 +101,10 @@ class AMPClient {
     }
 
     const endpoints = [
+      `${this.url}/API/ADSModule/GetInstances`,
       `${this.url}/API/ADS/GetInstances`,
-      `${this.url}/API/Core/GetInstances`
+      `${this.url}/API/Core/GetInstances`,
+      `${this.url}/API/Core/GetStatus`
     ];
 
     for (const endpoint of endpoints) {
