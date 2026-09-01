@@ -49,7 +49,7 @@ function broadcast(data) {
 // Escuchar conexiones WebSocket
 wss.on('connection', (ws) => {
   console.log('🔌 Nuevo cliente conectado al WebSocket.');
-  
+
   // Enviar el estado más reciente de inmediato para evitar pantallas en blanco
   if (latestState) {
     ws.send(JSON.stringify(latestState));
@@ -58,7 +58,7 @@ wss.on('connection', (ws) => {
   ws.on('close', () => {
     console.log('🔌 Cliente desconectado.');
   });
-  
+
   ws.on('error', (err) => {
     console.error('⚠️ Error en WebSocket:', err.message);
   });

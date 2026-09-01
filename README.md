@@ -76,12 +76,15 @@ npm start
 <details>
 <summary><b>Cómo editar config.json y .env (Clic para expandir)</b></summary>
 
+> [!NOTE]
+> Los archivos `config.json` y `.env` están ignorados por Git (`.gitignore`). Esto garantiza que cuando hagas `git pull` para actualizar el dashboard en el futuro, **tus IPs, puertos y contraseñas nunca se sobrescribirán ni generarán conflictos de Git**.
+
 ### 1. Editar `config.json`
 Ejecuta `nano config.json` en la terminal. Debe quedar estructurado de la siguiente forma con tus datos locales reales:
 ```json
 {
   "port": 3000,
-  "pollInterval": 10000,
+  "pollInterval": 2000,
   "server": {
     "name": "Servidor Ubuntu",
     "ip": "192.168.1.100"  // <-- Pon la IP local de tu servidor de juegos

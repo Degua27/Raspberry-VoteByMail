@@ -1,6 +1,6 @@
 {
   "port": 3000,
-  "pollInterval": 10000,
+  "pollInterval": 2000,
   "server": {
     "name": "Servidor Ubuntu",
     "ip": "192.168.1.100"
