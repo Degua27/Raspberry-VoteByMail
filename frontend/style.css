@@ -507,6 +507,32 @@ body {
 }
 
 /* ==========================================================================
+   ANIMACIÓN DE CAMBIO DE ESTADO (FLASH VISUAL)
+   ========================================================================== */
+@keyframes state-flash {
+  0% {
+    box-shadow: 0 0 0px rgba(255, 255, 255, 0);
+    border-color: var(--color-doc-border);
+  }
+  15% {
+    box-shadow: 0 0 18px rgba(255, 220, 100, 0.6), 6px 6px 0px rgba(0, 0, 0, 0.5);
+    border-color: #c9a826;
+  }
+  40% {
+    box-shadow: 0 0 10px rgba(255, 220, 100, 0.3), 6px 6px 0px rgba(0, 0, 0, 0.5);
+    border-color: #a08920;
+  }
+  100% {
+    box-shadow: 6px 6px 0px rgba(0, 0, 0, 0.5);
+    border-color: var(--color-doc-border);
+  }
+}
+
+.card.state-changed {
+  animation: state-flash 1.2s ease-out;
+}
+
+/* ==========================================================================
    PIE DE PÁGINA
    ========================================================================== */
 .app-footer {

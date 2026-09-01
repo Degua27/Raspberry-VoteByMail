@@ -3,6 +3,10 @@ let socket = null;
 let lastUpdateData = null;
 let reconnectTimer = null;
 
+// Tracking de estados anteriores para detectar cambios y aplicar feedback visual
+const previousStates = {}; // { instanceName: 'running' | 'stopped', ... }
+let previousServerState = null;
+
 // Elementos del DOM generales
 const wsDot = document.getElementById('ws-dot');
 const wsStatus = document.getElementById('ws-status');
@@ -92,6 +96,17 @@ function updateUI(data) {
       gsDurationLabel.textContent = 'Tiempo Apagado (Downtime)';
       gsDurationBox.className = 'status-duration-box offline';
     }
+
+    // Flash visual si el estado del servidor cambió
+    if (previousServerState !== null && previousServerState !== gs.state) {
+      const serverCard = document.getElementById('card-gameserver');
+      if (serverCard) {
+        serverCard.classList.remove('state-changed');
+        void serverCard.offsetWidth; // forzar reflow para reiniciar animación
+        serverCard.classList.add('state-changed');
+      }
+    }
+    previousServerState = gs.state;
   }
 
   // 3. Actualizar Instancias AMP
@@ -178,10 +193,29 @@ function updateUI(data) {
                 </div>
               </div>
             </div>
+
+            <div class="divider-thin"></div>
+
+            <div class="extra-info">
+              <div class="info-row">
+                <span>Último cambio de estado:</span>
+                <span class="font-mono js-inst-last-change">${formatDate(inst.lastChange)}</span>
+              </div>
+            </div>
           </div>
         `;
         instancesGrid.appendChild(card);
+        // Registrar estado inicial
+        previousStates[inst.name] = inst.state;
       } else {
+        // Detectar cambio de estado para flash visual
+        if (previousStates[inst.name] && previousStates[inst.name] !== inst.state) {
+          card.classList.remove('state-changed');
+          void card.offsetWidth; // forzar reflow para reiniciar animación
+          card.classList.add('state-changed');
+        }
+        previousStates[inst.name] = inst.state;
+
         // Actualización in-place sin parpadeos ni recreación del DOM
         card.querySelector('.js-inst-title').textContent = inst.friendlyName.toUpperCase();
         
@@ -199,6 +233,7 @@ function updateUI(data) {
         card.querySelector('.js-inst-dur-label').textContent = isRunning ? 'TIEMPO ENCENDIDO (UPTIME)' : 'TIEMPO APAGADO (DOWNTIME)';
         card.querySelector('.js-instance-duration').setAttribute('data-last-change', inst.lastChange);
         card.querySelector('.js-inst-players').innerHTML = playersCountHtml;
+        card.querySelector('.js-inst-last-change').textContent = formatDate(inst.lastChange);
       }
     });
 

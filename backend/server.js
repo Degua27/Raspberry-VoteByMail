@@ -72,15 +72,61 @@ const monitor = new Monitor(config, (state) => {
 
 monitor.start();
 
-// Manejo de apagado limpio
-process.on('SIGINT', () => {
-  console.log('\nStopping monitor and server...');
+// Manejo de apagado protegido — no se puede apagar si hay clientes web conectados
+let forceShutdownTimer = null;
+let shutdownPending = false;
+
+function getConnectedClients() {
+  let count = 0;
+  wss.clients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) count++;
+  });
+  return count;
+}
+
+function attemptShutdown(signal) {
+  const connectedClients = getConnectedClients();
+
+  if (connectedClients > 0 && !shutdownPending) {
+    // Primer intento: bloquear y avisar
+    shutdownPending = true;
+    console.log('');
+    console.log(`⚠️  ¡APAGADO BLOQUEADO! ${connectedClients} cliente(s) web conectado(s).`);
+    console.log(`    Desconéctalos primero, o pulsa Ctrl+C de nuevo en 5s para forzar.`);
+    console.log('');
+
+    // Resetear el flag después de 5 segundos si no se vuelve a pulsar
+    forceShutdownTimer = setTimeout(() => {
+      shutdownPending = false;
+      console.log('ℹ️  Ventana de apagado forzado expirada. El servicio sigue activo.');
+    }, 5000);
+    return;
+  }
+
+  // Si no hay clientes, o es el segundo intento (forzar)
+  if (forceShutdownTimer) clearTimeout(forceShutdownTimer);
+
+  if (shutdownPending && connectedClients > 0) {
+    console.log(`\n🔴 Apagado FORZADO con ${connectedClients} cliente(s) aún conectado(s).`);
+  } else {
+    console.log('\nApagando servicio (no hay clientes conectados)...');
+  }
+
   monitor.stop();
   server.close(() => {
-    console.log('Server stopped.');
+    console.log('🛑 Servidor detenido.');
     process.exit(0);
   });
-});
+
+  // Forzar salida si el servidor no cierra en 3 segundos
+  setTimeout(() => {
+    console.log('⏱️  Forzando cierre...');
+    process.exit(1);
+  }, 3000);
+}
+
+process.on('SIGINT', () => attemptShutdown('SIGINT'));
+process.on('SIGTERM', () => attemptShutdown('SIGTERM'));
 
 const PORT = config.port || 3000;
 server.listen(PORT, () => {
