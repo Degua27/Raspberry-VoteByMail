@@ -24,10 +24,17 @@ class AMPClient {
 
   async login() {
     try {
+      if (!this.password) {
+        throw new Error('La variable de entorno AMP_PASSWORD no está configurada');
+      }
+
       console.log(`🔑 Intentando login en AMP API: ${this.url}/API/Core/Login`);
       const response = await fetch(`${this.url}/API/Core/Login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify({
           username: this.username,
           password: this.password,
@@ -41,10 +48,12 @@ class AMPClient {
       }
 
       const data = await response.json();
-      const sessionId = data.SessionID || data.sessionID || (data.result && data.result.SessionID);
+      const sessionId = data.SessionID || data.sessionID || data.sessionId ||
+        (data.result && (data.result.SessionID || data.result.sessionID || data.result.sessionId)) ||
+        (data.Result && (data.Result.SessionID || data.Result.sessionID || data.Result.sessionId));
       
       if (!sessionId) {
-        throw new Error('No se recibió SessionID en la respuesta');
+        throw new Error(`No se recibió SessionID en la respuesta: ${JSON.stringify(data)}`);
       }
 
       this.sessionId = sessionId;
@@ -72,7 +81,10 @@ class AMPClient {
       try {
         const response = await fetch(endpoint, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
           body: JSON.stringify({ SESSIONID: this.sessionId })
         });
 
@@ -112,7 +124,7 @@ class Monitor {
   start() {
     const intervalTime = this.config.pollInterval || 10000;
     console.log(`🚀 Iniciando ciclo de monitoreo cada ${intervalTime / 1000}s...`);
-    
+
     // Ejecutar monitoreo de inmediato y luego establecer el intervalo
     this.poll();
     this.intervalId = setInterval(() => this.poll(), intervalTime);
@@ -128,7 +140,7 @@ class Monitor {
 
   async poll() {
     const now = Date.now();
-    
+
     // 1. Monitorear Servidor de Juegos (Ping)
     let gsOnline = false;
     if (this.config.server && this.config.server.ip) {
@@ -148,7 +160,7 @@ class Monitor {
             const name = inst.InstanceName || inst.name || 'Desconocido';
             const isRunning = inst.Running || inst.running || false;
             const state = isRunning ? 'running' : 'stopped';
-            
+
             // Actualizar estado en DB
             db.updateState(name, state, true);
 
@@ -175,7 +187,7 @@ class Monitor {
         // Servidor físico está caído, todas las instancias conocidas se consideran detenidas
         const allDbStates = db.getAllStates();
         const storedInstances = allDbStates.instances || {};
-        
+
         ampInstances = Object.keys(storedInstances).map(name => {
           db.updateState(name, 'stopped', true);
           const dbState = db.getState(name, true);

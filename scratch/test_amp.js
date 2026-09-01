@@ -43,6 +43,7 @@ async function testAMP() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json'
       },
       body: JSON.stringify(loginBody),
     });
@@ -55,7 +56,9 @@ async function testAMP() {
     console.log('Respuesta de Login recibida:', JSON.stringify(loginData, null, 2));
 
     // Obtener Session ID de la respuesta
-    const sessionId = loginData.SessionID || loginData.sessionID || (loginData.result && loginData.result.SessionID);
+    const sessionId = loginData.SessionID || loginData.sessionID || loginData.sessionId ||
+      (loginData.result && (loginData.result.SessionID || loginData.result.sessionID || loginData.result.sessionId)) ||
+      (loginData.Result && (loginData.Result.SessionID || loginData.Result.sessionID || loginData.Result.sessionId));
 
     if (!sessionId) {
       console.error('❌ Error: No se encontró el SessionID en la respuesta. ¿Las credenciales son correctas?');
@@ -82,6 +85,7 @@ async function testAMP() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Accept': 'application/json'
           },
           body: JSON.stringify({
             SESSIONID: sessionId
