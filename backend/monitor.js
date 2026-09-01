@@ -293,33 +293,27 @@ class Monitor {
           }).filter(Boolean);
 
           console.log(`📊 Procesadas ${ampInstances.length} instancias de juegos.`);
-        } else {
-          console.warn('⚠️ El servidor responde a ping pero la API de AMP no devolvió instancias (rawInstances:', rawInstances, ')');
-        }
-      } else {
-        console.warn('⚠️ El servidor físico no responde a ping, marcando instancias como offline.');
-        // Servidor físico está caído, todas las instancias conocidas se consideran detenidas
-        const allDbStates = db.getAllStates();
-        const storedInstances = allDbStates.instances || {};
+        } else if (ampEnabled && this.ampClient && !gsOnline) {
+          console.warn('⚠️ El servidor físico no responde a ping, marcando instancias como offline.');
+          // Servidor físico está caído, todas las instancias conocidas se consideran detenidas
+          const allDbStates = db.getAllStates();
+          const storedInstances = allDbStates.instances || {};
 
-        ampInstances = Object.keys(storedInstances).map(name => {
-          db.updateState(name, 'stopped', true);
-          const dbState = db.getState(name, true);
-          return {
-            name: name,
-            friendlyName: name,
-            app: 'Desconocido (Servidor Caído)',
-            state: 'stopped',
-            lastChange: dbState.lastChange,
-            duration: now - dbState.lastChange,
-            players: 0,
-            maxPlayers: 0,
-            cpu: 0,
-            ram: 0
-          };
-        });
-      }
-    }
+          ampInstances = Object.keys(storedInstances).map(name => {
+            db.updateState(name, 'stopped', true);
+            const dbState = db.getState(name, true);
+            return {
+              name: name,
+              friendlyName: name,
+              app: 'Desconocido (Servidor Caído)',
+              state: 'stopped',
+              lastChange: dbState ? dbState.lastChange : now,
+              duration: dbState ? (now - dbState.lastChange) : 0,
+              players: 0,
+              maxPlayers: 0
+            };
+          });
+        }
 
     // 3. Construir Estado Consolidado
     const dbGS = db.getState('gameServer');
