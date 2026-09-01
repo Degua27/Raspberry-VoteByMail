@@ -101,6 +101,7 @@ class AMPClient {
 
     for (const endpoint of endpoints) {
       try {
+        console.log(`📡 Consultando endpoint AMP: ${endpoint}`);
         const response = await fetch(endpoint, {
           method: 'POST',
           headers: {
@@ -120,10 +121,15 @@ class AMPClient {
             return this.getInstances(); // Reintentar login y llamada
           }
 
-          if (data && !data.error) {
+          if (data && !data.error && !data.Title) {
             const list = extractInstances(data);
+            console.log(`✅ Endpoint ${endpoint} devolvió ${list.length} instancias.`);
             return list;
+          } else if (data && data.Title) {
+            console.warn(`⚠️ Endpoint ${endpoint} devolvió: ${data.Title} - ${data.Message || ''}`);
           }
+        } else {
+          console.warn(`⚠️ Endpoint ${endpoint} respondió con HTTP ${response.status}`);
         }
       } catch (error) {
         console.warn(`⚠️ Endpoint ${endpoint} falló o no está disponible:`, error.message);
@@ -175,10 +181,15 @@ class Monitor {
     let ampInstances = [];
     const ampEnabled = this.config.amp && this.config.amp.enabled !== false;
 
-    if (ampEnabled && this.ampClient) {
+    if (!ampEnabled) {
+      console.log('ℹ️ AMP está deshabilitado en config.json (amp.enabled === false)');
+    } else if (!this.ampClient) {
+      console.warn('⚠️ AMP está habilitado pero no se pudo inicializar ampClient. Comprueba .env (AMP_PASSWORD) y config.json (url, username).');
+    } else {
       if (gsOnline) {
         const rawInstances = await this.ampClient.getInstances();
         if (rawInstances && Array.isArray(rawInstances)) {
+          console.log(`📊 Procesando ${rawInstances.length} instancias de AMP.`);
           ampInstances = rawInstances.map(inst => {
             const name = inst.InstanceName || inst.name || inst.InstanceId || inst.InstanceID || 'Desconocido';
             const isRunning = inst.Running === true || inst.running === true || inst.State === 20 || inst.AppState === 20;
@@ -220,9 +231,10 @@ class Monitor {
             };
           });
         } else {
-          console.warn('⚠️ El servidor responde a ping pero la API de AMP no devolvió instancias.');
+          console.warn('⚠️ El servidor responde a ping pero la API de AMP no devolvió instancias (rawInstances:', rawInstances, ')');
         }
       } else {
+        console.warn('⚠️ El servidor físico no responde a ping, marcando instancias como offline.');
         // Servidor físico está caído, todas las instancias conocidas se consideran detenidas
         const allDbStates = db.getAllStates();
         const storedInstances = allDbStates.instances || {};
