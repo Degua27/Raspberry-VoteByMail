@@ -169,6 +169,70 @@ class AMPClient {
     }
     return null;
   }
+
+  // Consultar el estado en tiempo real de una instancia individual
+  // Esto bypasea la caché del ADS controller
+  async getInstanceStatus(instanceId) {
+    if (!this.sessionId) return null;
+
+    // Intentar obtener el estado directamente del endpoint de la instancia
+    const endpoints = [
+      `${this.url}/API/ADSModule/Servers/${instanceId}/API/Core/GetStatus`,
+      `${this.url}/API/ADS/Servers/${instanceId}/API/Core/GetStatus`
+    ];
+
+    for (const endpoint of endpoints) {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 2000);
+
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ SESSIONID: this.sessionId }),
+          signal: controller.signal
+        });
+
+        clearTimeout(timeout);
+
+        if (response.ok) {
+          const data = await response.json();
+          const result = data.Result || data.result || data;
+          if (result && result.State !== undefined) {
+            return result.State;
+          }
+        }
+      } catch (error) {
+        // Silencioso — no todos los endpoints funcionan para todas las instancias
+      }
+    }
+    return null;
+  }
+
+  // Refrescar el AppState de todas las instancias con consultas directas
+  async refreshInstanceStates(instances) {
+    if (!instances || instances.length === 0) return instances;
+
+    const refreshPromises = instances.map(async (inst) => {
+      const instanceId = inst.InstanceId || inst.InstanceID || inst.InstanceName || inst.name;
+      if (!instanceId) return inst;
+
+      try {
+        const realTimeState = await this.getInstanceStatus(instanceId);
+        if (realTimeState !== null && realTimeState !== undefined) {
+          inst._realTimeState = realTimeState;
+        }
+      } catch (e) {
+        // Mantener el estado del cache
+      }
+      return inst;
+    });
+
+    return Promise.all(refreshPromises);
+  }
 }
 
 class Monitor {
@@ -204,10 +268,16 @@ class Monitor {
     const ampEnabled = this.config.amp && this.config.amp.enabled !== false;
 
     // Ejecución en paralelo de Ping y consulta a AMP para latencia mínima
-    const [pingOnline, rawInstances] = await Promise.all([
+    const [pingOnline, rawInstancesFromCache] = await Promise.all([
       (this.config.server && this.config.server.ip) ? ping(this.config.server.ip) : Promise.resolve(true),
       (ampEnabled && this.ampClient) ? this.ampClient.getInstances() : Promise.resolve(null)
     ]);
+
+    // Intentar refrescar estados individuales en tiempo real (bypasea la caché de ADS)
+    let rawInstances = rawInstancesFromCache;
+    if (rawInstancesFromCache && Array.isArray(rawInstancesFromCache) && rawInstancesFromCache.length > 0 && this.ampClient) {
+      rawInstances = await this.ampClient.refreshInstanceStates(rawInstancesFromCache);
+    }
 
     // Si AMP responde, el servidor está 100% online
     const gsOnline = (rawInstances && rawInstances.length > 0) ? true : pingOnline;
@@ -231,19 +301,27 @@ class Monitor {
 
             // Detección del estado real del servidor de juegos en AMP:
             // inst.AppState = estado de la aplicación del juego (0 = Detenido, 20/30 = En Ejecución)
+            // inst._realTimeState = estado obtenido por consulta directa (más reciente)
             let isRunning = false;
-            if (inst.AppState !== undefined) {
-              const appStateNum = Number(inst.AppState);
+            const effectiveAppState = inst._realTimeState !== undefined ? inst._realTimeState : inst.AppState;
+
+            if (effectiveAppState !== undefined) {
+              const appStateNum = Number(effectiveAppState);
               if (!isNaN(appStateNum)) {
                 isRunning = (appStateNum === 20 || appStateNum === 30);
               } else {
-                const appStateStr = String(inst.AppState).toLowerCase();
+                const appStateStr = String(effectiveAppState).toLowerCase();
                 isRunning = (appStateStr === 'running' || appStateStr === 'ready');
               }
             } else if (typeof inst.Running === 'boolean') {
               isRunning = inst.Running;
             } else if (typeof inst.running === 'boolean') {
               isRunning = inst.running;
+            }
+
+            // Log diagnóstico para detectar delays en la API de AMP
+            if (inst._realTimeState !== undefined && inst._realTimeState !== inst.AppState) {
+              console.log(`⚡ ${name}: Estado real=${inst._realTimeState} vs cache ADS=${inst.AppState} → ${isRunning ? 'RUNNING' : 'STOPPED'}`);
             }
 
             const state = isRunning ? 'running' : 'stopped';
