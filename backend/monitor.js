@@ -1,5 +1,6 @@
-const exec = require('child_process').exec;
 const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
+const exec = require('child_process').exec;
 const db = require('./database');
 
 // Función de ping multiplataforma (admite Windows y Linux/Raspberry Pi)
@@ -11,6 +12,27 @@ function ping(ip) {
       resolve(!err);
     });
   });
+}
+
+// Extraer lista de instancias de diferentes formatos de respuesta JSON de AMP
+function extractInstances(data) {
+  if (!data) return [];
+  if (Array.isArray(data)) return data;
+
+  const candidate = (data.Result !== undefined) ? data.Result :
+                    ((data.result !== undefined) ? data.result :
+                    (data.Instances || data.instances || data.data || data.Data));
+
+  if (Array.isArray(candidate)) return candidate;
+
+  if (candidate && typeof candidate === 'object') {
+    if (Array.isArray(candidate.AvailableInstances)) return candidate.AvailableInstances;
+    if (Array.isArray(candidate.Instances)) return candidate.Instances;
+    if (Array.isArray(candidate.instances)) return candidate.instances;
+    return Object.values(candidate);
+  }
+
+  return [];
 }
 
 // Cliente API de AMP
@@ -99,7 +121,8 @@ class AMPClient {
           }
 
           if (data && !data.error) {
-            return Array.isArray(data) ? data : (data.result || data.instances || data.Instances || []);
+            const list = extractInstances(data);
+            return list;
           }
         }
       } catch (error) {
@@ -155,10 +178,10 @@ class Monitor {
     if (ampEnabled && this.ampClient) {
       if (gsOnline) {
         const rawInstances = await this.ampClient.getInstances();
-        if (rawInstances) {
+        if (rawInstances && Array.isArray(rawInstances)) {
           ampInstances = rawInstances.map(inst => {
-            const name = inst.InstanceName || inst.name || 'Desconocido';
-            const isRunning = inst.Running || inst.running || false;
+            const name = inst.InstanceName || inst.name || inst.InstanceId || inst.InstanceID || 'Desconocido';
+            const isRunning = inst.Running === true || inst.running === true || inst.State === 20 || inst.AppState === 20;
             const state = isRunning ? 'running' : 'stopped';
 
             // Actualizar estado en DB
@@ -167,21 +190,37 @@ class Monitor {
             const dbState = db.getState(name, true);
             const timeSinceChange = dbState ? (now - dbState.lastChange) : 0;
 
+            const cpuValue = (inst.Metrics && inst.Metrics['Percent CPU'])
+              ? (inst.Metrics['Percent CPU'].Value !== undefined ? inst.Metrics['Percent CPU'].Value : inst.Metrics['Percent CPU'])
+              : (inst.PercentCPU || 0);
+
+            const ramValue = (inst.Metrics && inst.Metrics['Percent RAM'])
+              ? (inst.Metrics['Percent RAM'].Value !== undefined ? inst.Metrics['Percent RAM'].Value : inst.Metrics['Percent RAM'])
+              : (inst.PercentMemory || 0);
+
+            const activePlayers = inst.ActiveUsers !== undefined
+              ? inst.ActiveUsers
+              : ((inst.Metrics && inst.Metrics['Active Users']) ? (inst.Metrics['Active Users'].Value ?? inst.Metrics['Active Users']) : 0);
+
+            const maxPlayers = inst.MaxUsers !== undefined
+              ? inst.MaxUsers
+              : ((inst.Metrics && inst.Metrics['Max Users']) ? (inst.Metrics['Max Users'].Value ?? inst.Metrics['Max Users']) : 0);
+
             return {
               name: name,
-              friendlyName: inst.FriendlyName || name,
-              app: inst.ApplicationName || inst.module || 'Desconocido',
+              friendlyName: inst.FriendlyName || inst.friendlyName || name,
+              app: inst.ApplicationName || inst.module || inst.Module || inst.AppType || 'Instancia',
               state: state,
               lastChange: dbState ? dbState.lastChange : now,
               duration: timeSinceChange, // cuánto lleva encendido o apagado
-              players: inst.ActiveUsers !== undefined ? inst.ActiveUsers : 0,
-              maxPlayers: inst.MaxUsers !== undefined ? inst.MaxUsers : 0,
-              cpu: inst.Metrics && inst.Metrics['Percent CPU'] ? Math.round(inst.Metrics['Percent CPU'].Value) : (inst.PercentCPU || 0),
-              ram: inst.Metrics && inst.Metrics['Percent RAM'] ? Math.round(inst.Metrics['Percent RAM'].Value) : (inst.PercentMemory || 0)
+              players: activePlayers,
+              maxPlayers: maxPlayers,
+              cpu: Math.round(cpuValue) || 0,
+              ram: Math.round(ramValue) || 0
             };
           });
         } else {
-          console.warn('⚠️ El servidor responde a ping pero falló la API de AMP.');
+          console.warn('⚠️ El servidor responde a ping pero la API de AMP no devolvió instancias.');
         }
       } else {
         // Servidor físico está caído, todas las instancias conocidas se consideran detenidas

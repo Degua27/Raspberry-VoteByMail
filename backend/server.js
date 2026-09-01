@@ -1,12 +1,12 @@
+const path = require('path');
+// Cargar variables de entorno antes de importar otros módulos
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
+
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
-const path = require('path');
 const fs = require('fs');
 const Monitor = require('./monitor');
-
-// Cargar variables de entorno
-require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
 // Cargar config.json
 const configPath = path.join(__dirname, '../config.json');
