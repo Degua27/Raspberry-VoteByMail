@@ -77,7 +77,7 @@ function updateUI(data) {
   const gs = data.gameServer;
   if (gs) {
     gsNameEl.textContent = gs.name.toUpperCase();
-    gsIpEl.textContent = gs.ip;
+    if (gsIpEl) gsIpEl.textContent = gs.ip;
     gsLastChangeEl.textContent = formatDate(gs.lastChange);
     gsDurationEl.setAttribute('data-last-change', gs.lastChange);
     
