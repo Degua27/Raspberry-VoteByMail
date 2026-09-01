@@ -359,12 +359,23 @@ body {
 
 .instances-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(460px, 1fr));
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+  gap: 28px;
+}
+
+@media (max-width: 950px) {
+  .instances-grid {
+    grid-template-columns: 1fr;
+    max-width: 580px;
+  }
 }
 
 .instance-card {
-  min-height: 230px;
+  min-height: auto;
+  padding: 22px 24px;
 }
 
 /* Alternar inclinación en las tarjetas del grid para simular papeles esparcidos */
@@ -394,41 +405,46 @@ body {
 .app-ark { border-left: 4px solid #1a5b82; color: #1a5b82; }
 .app-valheim { border-left: 4px solid #82221a; color: #82221a; }
 .app-satisfactory { border-left: 4px solid #826e1a; color: #826e1a; }
+.app-zomboid { border-left: 4px solid #5a1a1a; color: #5a1a1a; }
+.app-palworld { border-left: 4px solid #1a5e52; color: #1a5e52; }
 
 .instance-status-info {
-  margin-top: 12px;
+  margin-top: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
 }
 
 .instance-time-counter {
-  font-size: 0.75rem;
   display: flex;
   flex-direction: column;
 }
 
-.instance-time-counter span {
-  font-size: 0.6rem;
-  color: var(--text-muted);
-  font-weight: bold;
-}
-
 .instance-players {
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   font-weight: bold;
   display: flex;
   align-items: center;
-  gap: 6px;
-  background: var(--bg-paper-dark);
-  padding: 4px 8px;
+  gap: 10px;
+  background: var(--bg-paper);
+  padding: 6px 14px;
   border: 2px solid var(--color-doc-border);
 }
 
 .instance-players i {
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   color: var(--text-paper);
+}
+
+.players-title {
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  font-weight: bold;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  margin-bottom: 3px;
 }
 
 /* ==========================================================================

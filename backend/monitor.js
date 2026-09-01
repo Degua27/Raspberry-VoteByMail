@@ -259,10 +259,17 @@ class Monitor {
             const dbState = db.getState(name, true);
             const timeSinceChange = dbState ? (now - dbState.lastChange) : 0;
 
-            const cpuValue = parseMetricValue(inst.Metrics && inst.Metrics['Percent CPU'] !== undefined ? inst.Metrics['Percent CPU'] : inst.PercentCPU);
-            const ramValue = parseMetricValue(inst.Metrics && inst.Metrics['Percent RAM'] !== undefined ? inst.Metrics['Percent RAM'] : inst.PercentMemory);
-            const activePlayers = parseMetricValue(inst.ActiveUsers !== undefined ? inst.ActiveUsers : (inst.Metrics && inst.Metrics['Active Users']));
-            const maxPlayers = parseMetricValue(inst.MaxUsers !== undefined ? inst.MaxUsers : (inst.Metrics && inst.Metrics['Max Users']));
+            const activePlayers = parseMetricValue(
+              inst.ActiveUsers !== undefined ? inst.ActiveUsers :
+              (inst.ActivePlayers !== undefined ? inst.ActivePlayers :
+              (inst.Metrics && (inst.Metrics['Active Users'] || inst.Metrics['ActivePlayers'] || inst.Metrics['Players'] || inst.Metrics['User Count'])))
+            );
+
+            const maxPlayers = parseMetricValue(
+              inst.MaxUsers !== undefined ? inst.MaxUsers :
+              (inst.MaxPlayers !== undefined ? inst.MaxPlayers :
+              (inst.Metrics && (inst.Metrics['Max Users'] || inst.Metrics['MaxPlayers'] || inst.Metrics['User Limit'] || inst.Metrics['Max Players'])))
+            );
 
             return {
               name: name,
@@ -272,9 +279,7 @@ class Monitor {
               lastChange: dbState ? dbState.lastChange : now,
               duration: timeSinceChange, // cuánto lleva encendido o apagado
               players: activePlayers,
-              maxPlayers: maxPlayers,
-              cpu: Math.round(cpuValue) || 0,
-              ram: Math.round(ramValue) || 0
+              maxPlayers: maxPlayers
             };
           }).filter(Boolean);
 

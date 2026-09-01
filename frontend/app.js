@@ -118,6 +118,15 @@ function updateUI(data) {
       else if (appLower.includes('zomboid')) appBadgeClass += ' app-zomboid';
       else if (appLower.includes('palworld')) appBadgeClass += ' app-palworld';
 
+      // Formato de jugadores
+      let playersCountHtml = '';
+      if (!isRunning) {
+        playersCountHtml = `<span class="font-mono" style="color: var(--text-muted);">0 / ${inst.maxPlayers || 0}</span>`;
+      } else {
+        const maxStr = inst.maxPlayers > 0 ? inst.maxPlayers : '—';
+        playersCountHtml = `<span class="font-mono font-bold" style="color: var(--stamp-approved);">${inst.players} / ${maxStr}</span>`;
+      }
+
       card.innerHTML = `
         <div class="card-header">
           <div class="device-info">
@@ -131,38 +140,19 @@ function updateUI(data) {
         </div>
         
         <div class="card-body">
-          <div class="instance-status-info">
-            <div class="instance-time-counter">
-              <span>${isRunning ? 'Uptime' : 'Downtime'}</span>
-              <strong class="font-mono js-instance-duration" data-last-change="${inst.lastChange}">0d 00h 00m 00s</strong>
-            </div>
-            
-            <div class="instance-players" title="Jugadores Conectados">
-              <i data-lucide="users"></i>
-              <span class="font-mono">${inst.players} / ${inst.maxPlayers}</span>
-            </div>
-          </div>
-          
-          <div class="divider-thin"></div>
-          
-          <div class="metrics-grid">
-            <div class="metric-item">
-              <div class="metric-header">
-                <span>CPU Instancia</span>
-                <span>${inst.cpu}%</span>
+          <div class="status-duration-box ${isRunning ? 'online' : 'offline'}">
+            <div class="instance-status-info">
+              <div class="instance-time-counter">
+                <span class="duration-title">${isRunning ? 'TIEMPO ENCENDIDO (UPTIME)' : 'TIEMPO APAGADO (DOWNTIME)'}</span>
+                <strong class="font-mono duration-time js-instance-duration" data-last-change="${inst.lastChange}">0d 00h 00m 00s</strong>
               </div>
-              <div class="progress-bar-container">
-                <div class="progress-bar" style="width: ${inst.cpu}%"></div>
-              </div>
-            </div>
-
-            <div class="metric-item">
-              <div class="metric-header">
-                <span>RAM Instancia</span>
-                <span>${inst.ram}%</span>
-              </div>
-              <div class="progress-bar-container">
-                <div class="progress-bar" style="width: ${inst.ram}%"></div>
+              
+              <div class="instance-players" title="Jugadores Conectados">
+                <i data-lucide="users"></i>
+                <div>
+                  <div class="players-title">JUGADORES</div>
+                  ${playersCountHtml}
+                </div>
               </div>
             </div>
           </div>
