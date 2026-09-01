@@ -271,7 +271,6 @@ body {
   transform: rotate(-3deg); /* Inclinación de sello manual */
   pointer-events: none;
   text-align: center;
-  animation: stamp-animation 0.12s ease-out;
 }
 
 .status-badge.online {
@@ -284,11 +283,6 @@ body {
   color: var(--stamp-denied);
   border-color: var(--stamp-denied);
   background: rgba(156, 39, 39, 0.02);
-}
-
-@keyframes stamp-animation {
-  0% { transform: scale(1.3) rotate(-15deg); opacity: 0; }
-  100% { transform: scale(1) rotate(-3deg); opacity: 1; }
 }
 
 /* Cajas de duración de estado (Detalle en el documento) */

@@ -188,7 +188,7 @@ class Monitor {
   }
 
   start() {
-    const intervalTime = this.config.pollInterval || 10000;
+    const intervalTime = this.config.pollInterval || 4000;
     console.log(`🚀 Iniciando ciclo de monitoreo cada ${intervalTime / 1000}s...`);
 
     // Ejecutar monitoreo de inmediato y luego establecer el intervalo
@@ -240,11 +240,16 @@ class Monitor {
             }
 
             // Detección del estado real del servidor de juegos en AMP:
-            // inst.Running = el daemon/contenedor de AMP está activo
             // inst.AppState = estado de la aplicación del juego (0 = Detenido, 20/30 = En Ejecución)
             let isRunning = false;
             if (inst.AppState !== undefined) {
-              isRunning = (inst.AppState === 20 || inst.AppState === 30 || String(inst.AppState).toLowerCase() === 'running');
+              const appStateNum = Number(inst.AppState);
+              if (!isNaN(appStateNum)) {
+                isRunning = (appStateNum === 20 || appStateNum === 30);
+              } else {
+                const appStateStr = String(inst.AppState).toLowerCase();
+                isRunning = (appStateStr === 'running' || appStateStr === 'ready');
+              }
             } else if (typeof inst.Running === 'boolean') {
               isRunning = inst.Running;
             } else if (typeof inst.running === 'boolean') {
@@ -265,11 +270,25 @@ class Monitor {
               (inst.Metrics && (inst.Metrics['Active Users'] || inst.Metrics['ActivePlayers'] || inst.Metrics['Players'] || inst.Metrics['User Count'])))
             );
 
-            const maxPlayers = parseMetricValue(
+            let maxPlayers = parseMetricValue(
               inst.MaxUsers !== undefined ? inst.MaxUsers :
               (inst.MaxPlayers !== undefined ? inst.MaxPlayers :
               (inst.Metrics && (inst.Metrics['Max Users'] || inst.Metrics['MaxPlayers'] || inst.Metrics['User Limit'] || inst.Metrics['Max Players'])))
             );
+
+            // Si maxPlayers es 0, buscar en claves de configuración de la instancia (ej. Minecraft.Server.MaxPlayers)
+            if (maxPlayers === 0) {
+              for (const key of Object.keys(inst)) {
+                const kLower = key.toLowerCase();
+                if (kLower.includes('maxplayer') || kLower.includes('maxuser') || kLower.includes('userlimit') || kLower.includes('max_players')) {
+                  const parsed = parseMetricValue(inst[key]);
+                  if (parsed > 0) {
+                    maxPlayers = parsed;
+                    break;
+                  }
+                }
+              }
+            }
 
             return {
               name: name,

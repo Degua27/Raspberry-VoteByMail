@@ -95,20 +95,31 @@ function updateUI(data) {
   }
 
   // 3. Actualizar Instancias AMP
-  instancesGrid.innerHTML = '';
-  
   if (data.instances && data.instances.length > 0) {
     instancesCountEl.textContent = `${data.instances.length} activas`;
-    
+
+    // Si había mensaje de "no hay datos", limpiar
+    if (instancesGrid.querySelector('.no-data-msg')) {
+      instancesGrid.innerHTML = '';
+    }
+
+    const currentNames = new Set(data.instances.map(i => i.name));
+
+    // Eliminar tarjetas de instancias que ya no existan
+    instancesGrid.querySelectorAll('.instance-card').forEach(card => {
+      if (!currentNames.has(card.dataset.instanceName)) {
+        card.remove();
+      }
+    });
+
+    let hasNewCards = false;
+
     data.instances.forEach(inst => {
-      const card = document.createElement('div');
-      card.className = 'card instance-card';
-      
+      let card = instancesGrid.querySelector(`.instance-card[data-instance-name="${inst.name}"]`);
       const isRunning = inst.state === 'running';
       const statusBadgeClass = isRunning ? 'status-badge online' : 'status-badge offline';
       const statusBadgeText = isRunning ? 'APROBADO' : 'DENEGADO';
-      
-      // Intentar obtener clase de estilo según tipo de juego
+
       const appLower = inst.app.toLowerCase();
       let appBadgeClass = 'instance-app-badge font-mono';
       if (appLower.includes('minecraft')) appBadgeClass += ' app-minecraft';
@@ -118,49 +129,82 @@ function updateUI(data) {
       else if (appLower.includes('zomboid')) appBadgeClass += ' app-zomboid';
       else if (appLower.includes('palworld')) appBadgeClass += ' app-palworld';
 
-      // Formato de jugadores
       let playersCountHtml = '';
       if (!isRunning) {
-        playersCountHtml = `<span class="font-mono" style="color: var(--text-muted);">0 / ${inst.maxPlayers || 0}</span>`;
+        if (inst.maxPlayers > 0) {
+          playersCountHtml = `<span class="font-mono" style="color: var(--text-muted);">0 / ${inst.maxPlayers}</span>`;
+        } else {
+          playersCountHtml = `<span class="font-mono" style="color: var(--text-muted);">0 conect.</span>`;
+        }
       } else {
-        const maxStr = inst.maxPlayers > 0 ? inst.maxPlayers : '—';
-        playersCountHtml = `<span class="font-mono font-bold" style="color: var(--stamp-approved);">${inst.players} / ${maxStr}</span>`;
+        if (inst.maxPlayers > 0) {
+          playersCountHtml = `<span class="font-mono font-bold" style="color: var(--stamp-approved); font-size: 1.05rem;">${inst.players} / ${inst.maxPlayers}</span>`;
+        } else {
+          playersCountHtml = `<span class="font-mono font-bold" style="color: var(--stamp-approved); font-size: 1.05rem;">${inst.players} online</span>`;
+        }
       }
 
-      card.innerHTML = `
-        <div class="card-header">
-          <div class="device-info">
-            <span class="device-icon pi-icon"><i data-lucide="gamepad-2"></i></span>
-            <div>
-              <h3 title="${inst.name}" class="font-pixel">${inst.friendlyName.toUpperCase()}</h3>
-              <span class="${appBadgeClass}">${inst.app}</span>
-            </div>
-          </div>
-          <span class="${statusBadgeClass}">${statusBadgeText}</span>
-        </div>
-        
-        <div class="card-body">
-          <div class="status-duration-box ${isRunning ? 'online' : 'offline'}">
-            <div class="instance-status-info">
-              <div class="instance-time-counter">
-                <span class="duration-title">${isRunning ? 'TIEMPO ENCENDIDO (UPTIME)' : 'TIEMPO APAGADO (DOWNTIME)'}</span>
-                <strong class="font-mono duration-time js-instance-duration" data-last-change="${inst.lastChange}">0d 00h 00m 00s</strong>
+      if (!card) {
+        hasNewCards = true;
+        card = document.createElement('div');
+        card.className = 'card instance-card';
+        card.dataset.instanceName = inst.name;
+        card.innerHTML = `
+          <div class="card-header">
+            <div class="device-info">
+              <span class="device-icon pi-icon"><i data-lucide="gamepad-2"></i></span>
+              <div>
+                <h3 title="${inst.name}" class="font-pixel js-inst-title">${inst.friendlyName.toUpperCase()}</h3>
+                <span class="js-inst-badge ${appBadgeClass}">${inst.app}</span>
               </div>
-              
-              <div class="instance-players" title="Jugadores Conectados">
-                <i data-lucide="users"></i>
-                <div>
-                  <div class="players-title">JUGADORES</div>
-                  ${playersCountHtml}
+            </div>
+            <span class="js-inst-status ${statusBadgeClass}">${statusBadgeText}</span>
+          </div>
+          
+          <div class="card-body">
+            <div class="status-duration-box js-inst-box ${isRunning ? 'online' : 'offline'}">
+              <div class="instance-status-info">
+                <div class="instance-time-counter">
+                  <span class="duration-title js-inst-dur-label">${isRunning ? 'TIEMPO ENCENDIDO (UPTIME)' : 'TIEMPO APAGADO (DOWNTIME)'}</span>
+                  <strong class="font-mono duration-time js-instance-duration" data-last-change="${inst.lastChange}">0d 00h 00m 00s</strong>
+                </div>
+                
+                <div class="instance-players" title="Jugadores Conectados">
+                  <i data-lucide="users"></i>
+                  <div>
+                    <div class="players-title">JUGADORES</div>
+                    <div class="js-inst-players">${playersCountHtml}</div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      `;
-      
-      instancesGrid.appendChild(card);
+        `;
+        instancesGrid.appendChild(card);
+      } else {
+        // Actualización in-place sin parpadeos ni recreación del DOM
+        card.querySelector('.js-inst-title').textContent = inst.friendlyName.toUpperCase();
+        
+        const badgeEl = card.querySelector('.js-inst-badge');
+        badgeEl.className = `js-inst-badge ${appBadgeClass}`;
+        badgeEl.textContent = inst.app;
+        
+        const statusEl = card.querySelector('.js-inst-status');
+        statusEl.className = `js-inst-status ${statusBadgeClass}`;
+        statusEl.textContent = statusBadgeText;
+        
+        const boxEl = card.querySelector('.js-inst-box');
+        boxEl.className = `status-duration-box js-inst-box ${isRunning ? 'online' : 'offline'}`;
+        
+        card.querySelector('.js-inst-dur-label').textContent = isRunning ? 'TIEMPO ENCENDIDO (UPTIME)' : 'TIEMPO APAGADO (DOWNTIME)';
+        card.querySelector('.js-instance-duration').setAttribute('data-last-change', inst.lastChange);
+        card.querySelector('.js-inst-players').innerHTML = playersCountHtml;
+      }
     });
+
+    if (hasNewCards) {
+      lucide.createIcons();
+    }
   } else {
     instancesCountEl.textContent = '0 activas';
     instancesGrid.innerHTML = `
@@ -169,11 +213,9 @@ function updateUI(data) {
         <p class="font-pixel">No se encontraron instancias activas o el servidor está apagado.</p>
       </div>
     `;
+    lucide.createIcons();
   }
 
-  // Volver a procesar iconos
-  lucide.createIcons();
-  
   // Actualizar los cronómetros de inmediato
   tickCounters();
 }
